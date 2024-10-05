@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home'; // Make sure you have a Home component
 import UserDetailPage from './pages/UserDetailPage';
 import AddUserForm from './components/AddUserForm';
+import EditUserForm from './components/EditUserForm';
 
 const App = () => {
   return (
