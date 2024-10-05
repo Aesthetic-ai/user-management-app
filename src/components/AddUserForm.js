@@ -1,123 +1,131 @@
 // src/components/AddUserForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { TextField, Button, Typography } from '@mui/material';
 
 const AddUserForm = () => {
-  const location = useLocation();
-  const { user } = location.state || {}; // Get user data from the state
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const userId = params.get('userId');
 
-  const [name, setName] = useState(user ? user.name : '');
-  const [username, setUsername] = useState(user ? user.username : '');
-  const [email, setEmail] = useState(user ? user.email : '');
-  const [phone, setPhone] = useState(user ? user.phone : '');
-  const [website, setWebsite] = useState(user ? user.website : '');
-  const [address, setAddress] = useState(user ? user.address : { street: '', city: '', suite: '', zipcode: '' });
-  const [company, setCompany] = useState(user ? user.company.name : '');
+  const [userData, setUserData] = useState({
+    name: '',
+    username: '',
+    email: '',
+    phone: '',
+    website: '',
+    company: '',
+    street: '',
+    city: '',
+  });
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (userId) {
+        const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`);
+        const data = await response.json();
+        setUserData({
+          name: data.name,
+          username: data.username,
+          email: data.email,
+          phone: data.phone,
+          website: data.website,
+          company: data.company.name,
+          street: data.address.street,
+          city: data.address.city,
+        });
+      }
+    };
+    fetchUser();
+  }, [userId]); // Depend on userId to refetch when it changes
+
+  const handleChange = (e) => {
+    setUserData({ ...userData, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const userData = {
-      name,
-      username,
-      email,
-      phone,
-      website,
-      address,
-      company: { name: company },
+    const userPayload = {
+      ...userData,
+      address: {
+        street: userData.street,
+        city: userData.city,
+      },
+      company: {
+        name: userData.company,
+      },
     };
 
     try {
-      if (user) {
-        // Update existing user
-        await fetch(`https://jsonplaceholder.typicode.com/users/${user.id}`, {
+      if (userId) {
+        const response = await fetch(`https://jsonplaceholder.typicode.com/users/${userId}`, {
           method: 'PUT',
-          body: JSON.stringify(userData),
+          body: JSON.stringify(userPayload),
           headers: {
             'Content-Type': 'application/json',
           },
         });
+
+        if (!response.ok) throw new Error('Failed to update user');
+
+        const updatedUser = await response.json();
+        navigate(`/user/${updatedUser.id}`); // Redirect to the updated user
       } else {
-        // Create new user
-        await fetch('https://jsonplaceholder.typicode.com/users', {
+        const response = await fetch('https://jsonplaceholder.typicode.com/users', {
           method: 'POST',
-          body: JSON.stringify(userData),
+          body: JSON.stringify(userPayload),
           headers: {
             'Content-Type': 'application/json',
           },
         });
+
+        if (!response.ok) throw new Error('Failed to create user');
+
+        const newUser = await response.json();
+        navigate(`/user/${newUser.id}`); // Redirect to the new user
       }
-      navigate('/'); // Navigate back to home after submit
     } catch (error) {
       console.error('Error:', error);
     }
   };
 
   return (
-    <div style={{ margin: '20px' }}>
-      <Typography variant="h4">{user ? 'Edit User' : 'Add User'}</Typography>
-      <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
-        <TextField
-          label="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          InputProps={{ readOnly: true }} // Make the username field non-editable
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          required
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Website"
-          value={website}
-          onChange={(e) => setWebsite(e.target.value)}
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Street"
-          value={address.street}
-          onChange={(e) => setAddress({ ...address, street: e.target.value })}
-          required
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="City"
-          value={address.city}
-          onChange={(e) => setAddress({ ...address, city: e.target.value })}
-          required
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <TextField
-          label="Company Name"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          style={{ marginBottom: '20px', width: '100%' }}
-        />
-        <Button type="submit" variant="contained" color="primary">
-          {user ? 'Update User' : 'Add User'}
-        </Button>
-      </form>
-    </div>
+    <form onSubmit={handleSubmit}>
+      <h2>{userId ? 'Edit User' : 'Add User'}</h2>
+      <div>
+        <label>Name:</label>
+        <input type="text" name="name" value={userData.name} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Username:</label>
+        <input type="text" name="username" value={userData.username} readOnly />
+      </div>
+      <div>
+        <label>Email:</label>
+        <input type="email" name="email" value={userData.email} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Phone:</label>
+        <input type="tel" name="phone" value={userData.phone} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>Website:</label>
+        <input type="url" name="website" value={userData.website} onChange={handleChange} />
+      </div>
+      <div>
+        <label>Company:</label>
+        <input type="text" name="company" value={userData.company} onChange={handleChange} />
+      </div>
+      <div>
+        <label>Street:</label>
+        <input type="text" name="street" value={userData.street} onChange={handleChange} required />
+      </div>
+      <div>
+        <label>City:</label>
+        <input type="text" name="city" value={userData.city} onChange={handleChange} required />
+      </div>
+      <button type="submit">{userId ? 'Update User' : 'Add User'}</button>
+    </form>
   );
 };
 
