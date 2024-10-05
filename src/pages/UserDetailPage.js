@@ -31,7 +31,7 @@ const UserDetailPage = () => {
 
   const handleEdit = () => {
     // Navigate to the AddUserForm page with the userId
-    navigate(`/add-user`, { state: { user } });
+    navigate(`/UserDetails`, { state: { user } });
   };
 
   if (loading) {
